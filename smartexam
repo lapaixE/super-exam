@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Smart Exam System - Professional Edition</title>
+    <style>
+        :root{ --primary:#2563eb; --success:#10b981; --danger:#ef4444; --bg:#f1f5f9; }
+        body{ font-family:'Segoe UI', Tahoma, sans-serif; background:var(--bg); padding:20px; }
+        .container{ max-width:850px; margin:auto; }
+        .box{ background:white; padding:25px; border-radius:12px; box-shadow:0 4px 10px rgba(0,0,0,0.1); margin-bottom:20px; }
+        input, select, button, textarea { width:100%; padding:12px; margin:8px 0; border-radius:8px; border:1px solid #ddd; box-sizing: border-box; }
+        button{ background:var(--primary); color:white; border:none; cursor:pointer; font-weight:bold; }
+        .grid { display:grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .exam-card { border-left: 5px solid var(--primary); background: #f8fafc; padding: 15px; margin: 10px 0; display: flex; justify-content: space-between; align-items: center; }
+        
+        /* RESULT SLIP */
+        #resultSlip { display:none; background:white; padding:40px; border:2px solid #333; width:100%; max-width:650px; margin:20px auto; position: relative; }
+        .slip-header { text-align: center; border-bottom: 2px solid #333; padding-bottom: 10px; margin-bottom: 20px; }
+        .stamp { position: absolute; bottom: 40px; right: 40px; border: 2px solid blue; color: blue; padding: 10px; border-radius: 50%; transform: rotate(-15deg); opacity: 0.6; font-weight: bold; }
+
+        @media print {
+            body * { display: none !important; }
+            #resultSlip, #resultSlip * { display: block !important; }
+            .no-print { display: none !important; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container no-print">
+    <h2 style="text-align: center;">🎓 SMART EXAM SYSTEM</h2>
+
+    <!-- LOGIN SECTION -->
+    <div id="loginBox" class="box">
+        <h3>Login</h3>
+        <input id="lEmail" placeholder="Email Address">
+        <input id="lPass" type="password" placeholder="Password">
+        <button onclick="login()">Login</button>
+        <p style="text-align:center">No account? <span onclick="showReg()" style="color:blue;cursor:pointer;">Register here</span></p>
+    </div>
+
+    <!-- REGISTRATION SECTION -->
+    <div id="regBox" class="box" style="display:none;">
+        <h3>Create New Account</h3>
+        <div class="grid">
+            <select id="role" onchange="switchRole()">
+                <option value="student">Student</option>
+                <option value="teacher">Teacher</option>
+            </select>
+            <select id="userLang">
+                <option value="English">English</option>
+                <option value="Kinyarwanda">Kinyarwanda</option>
+                <option value="French">French</option>
+            </select>
+        </div>
+        <div class="grid">
+            <input id="firstName" placeholder="First Name">
+            <input id="lastName" placeholder="Last Name">
+        </div>
+        <input id="rEmail" placeholder="Email Address">
+        
+        <div id="studentFields">
+            <input id="schoolName" placeholder="School Name">
+            <div class="grid">
+                <input id="studentClass" placeholder="Class (e.g., Senior 4)">
+                <input id="studentID" placeholder="Student ID Number">
+            </div>
+        </div>
+
+        <input id="rPass" type="password" placeholder="Password (Min 6 chars)">
+        <button onclick="register()">Create Account</button>
+        <p onclick="showLog()" style="color:blue;text-align:center;cursor:pointer;">Back to Login</p>
+    </div>
+
+    <!-- DASHBOARD -->
+    <div id="dash" style="display:none;">
+        <div class="box">
+            <div style="display:flex; justify-content: space-between; align-items:center;">
+                <div>
+                    <h3 id="welcome"></h3>
+                    <small id="userSub" style="color:gray"></small>
+                </div>
+                <button onclick="logout()" style="width:auto; background:var(--danger); padding:5px 15px;">Logout</button>
+            </div>
+        </div>
+
+        <!-- TEACHER DASHBOARD -->
+        <div id="teacherPanel" class="box" style="display:none;">
+            <h3>Create New Exam</h3>
+            <input id="exTitle" placeholder="Exam Title (e.g., Mathematics Quiz)">
+            <textarea id="exContent" rows="3" placeholder="Format: Question, Option A, Option B, Option C, Option D, Correct Answer"></textarea>
+            <button onclick="saveExam()" style="background:var(--success)">Publish Exam</button>
+            
+            <h3 style="margin-top:20px;">Student Performance Report</h3>
+            <div id="teacherResults"></div>
+        </div>
+
+        <!-- STUDENT DASHBOARD -->
+        <div id="studentPanel" class="box" style="display:none;">
+            <h3>Available Exams</h3>
+            <div id="examList"></div>
+            <div id="activeExam" style="display:none;">
+                <h2 id="currentExTitle"></h2>
+                <div id="questionArea"></div>
+                <button onclick="submitExam()" style="background:var(--success)">Submit Answers</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- RESULT SLIP (PRINTABLE) -->
+<div id="resultSlip">
+    <div class="slip-header">
+        <h1 id="slipSchoolName">SCHOOL NAME</h1>
+        <p>OFFICIAL ACADEMIC RESULT SLIP</p>
+    </div>
+    <div class="slip-body">
+        <p><strong>Full Names:</strong> <span id="slipName"></span></p>
+        <p><strong>Class:</strong> <span id="slipClass"></span></p>
+        <p><strong>Student ID:</strong> <span id="slipID"></span></p>
+        <p><strong>Preferred Language:</strong> <span id="slipLang"></span></p>
+        <hr>
+        <p><strong>Subject / Exam:</strong> <span id="slipExam"></span></p>
+        <h2 style="text-align: center; margin-top: 30px;">FINAL SCORE: <span id="slipScore"></span>%</h2>
+    </div>
+    <div class="stamp">OFFICIALLY APPROVED</div>
+    <div style="margin-top: 50px; text-align: center;" class="no-print">
+        <button onclick="window.print()" style="background:var(--success); width:auto; padding:10px 20px;">Print Result Slip</button>
+        <button onclick="location.reload()" style="background:gray; width:auto; padding:10px 20px;">Close</button>
+    </div>
+</div>
+
+<script>
+    let DB = {
+        users: JSON.parse(localStorage.getItem("users")) || [],
+        exams: JSON.parse(localStorage.getItem("exams")) || [],
+        results: JSON.parse(localStorage.getItem("results")) || []
+    };
+    let currentUser = null;
+    let currentExIdx = null;
+
+    function save() {
+        localStorage.setItem("users", JSON.stringify(DB.users));
+        localStorage.setItem("exams", JSON.stringify(DB.exams));
+        localStorage.setItem("results", JSON.stringify(DB.results));
+    }
+
+    function showReg(){ loginBox.style.display="none"; regBox.style.display="block"; }
+    function showLog(){ loginBox.style.display="block"; regBox.style.display="none"; }
+    function logout(){ location.reload(); }
+    function switchRole(){ studentFields.style.display = (role.value === "student") ? "block" : "none"; }
+
+    function register() {
+        let user = {
+            role: role.value, lang: userLang.value, first: firstName.value, last: lastName.value,
+            email: rEmail.value, password: rPass.value,
+            school: schoolName.value, class: studentClass.value, sid: studentID.value
+        };
+        if(!user.email || user.password.length < 6) return alert("Please provide a valid email and 6+ character password.");
+        DB.users.push(user);
+        save();
+        alert("Registration Successful!");
+        showLog();
+    }
+
+    function login() {
+        let u = DB.users.find(x => x.email === lEmail.value && x.password === lPass.value);
+        if(!u) return alert("Invalid Login Credentials!");
+        currentUser = u;
+        loginBox.style.display = "none";
+        dash.style.display = "block";
+        welcome.innerHTML = "Welcome, " + u.first;
+        userSub.innerHTML = u.role === "student" ? `School: ${u.school} | Class: ${u.class}` : "Authorized Teacher Profile";
+        
+        if(u.role === "student") { studentPanel.style.display = "block"; renderExams(); }
+        else { teacherPanel.style.display = "block"; loadTeacherResults(); }
+    }
+
+    function saveExam() {
+        let lines = exContent.value.split("\n").filter(l => l.trim() !== "");
+        let qs = lines.map(line => {
+            let p = line.split(",");
+            return { q:p[0], a:p[1], b:p[2], c:p[3], d:p[4], correct:p[5] };
+        });
+        DB.exams.push({ title: exTitle.value, questions: qs, teacher: currentUser.email });
+        save();
+        alert("Exam Published Successfully!");
+        exTitle.value=""; exContent.value="";
+    }
+
+    function renderExams() {
+        let html = "";
+        DB.exams.forEach((ex, i) => {
+            let res = DB.results.find(r => r.student === currentUser.email && r.examIndex === i);
+            html += `<div class="exam-card"><span>${ex.title}</span>
+            ${res ? `<button onclick="showSlip(${i}, ${res.score})" style="background:var(--success); width:auto;">View Slip</button>` 
+                  : `<button onclick="startExam(${i})" style="width:auto;">Start Exam</button>`}</div>`;
+        });
+        examList.innerHTML = html || "No exams available at the moment.";
+    }
+
+    function startExam(i) {
+        currentExIdx = i;
+        examList.style.display = "none";
+        activeExam.style.display = "block";
+        currentExTitle.innerText = DB.exams[i].title;
+        let qh = "";
+        DB.exams[i].questions.forEach((q, qi) => {
+            qh += `<p><b>${qi+1}. ${q.q}</b></p>
+                <input type="radio" name="q${qi}" value="${q.a}"> ${q.a}<br>
+                <input type="radio" name="q${qi}" value="${q.b}"> ${q.b}<br>
+                <input type="radio" name="q${qi}" value="${q.c}"> ${q.c}<br>
+                <input type="radio" name="q${qi}" value="${q.d}"> ${q.d}<br>`;
+        });
+        questionArea.innerHTML = qh;
+    }
+
+    function submitExam() {
+        let ex = DB.exams[currentExIdx];
+        let score = 0;
+        ex.questions.forEach((q, i) => {
+            let sel = document.querySelector(`input[name="q${i}"]:checked`);
+            if(sel && sel.value.trim() === q.correct.trim()) score++;
+        });
+        let pct = Math.round((score/ex.questions.length)*100);
+        DB.results.push({ student: currentUser.email, examIndex: currentExIdx, score: pct });
+        save();
+        alert("Exam Submitted! Final Score: " + pct + "%");
+        location.reload();
+    }
+
+    function showSlip(idx, score) {
+        document.querySelector(".container").style.display = "none";
+        document.getElementById("resultSlip").style.display = "block";
+        document.getElementById("slipSchoolName").innerText = currentUser.school.toUpperCase();
+        document.getElementById("slipName").innerText = currentUser.first + " " + currentUser.last;
+        document.getElementById("slipClass").innerText = currentUser.class;
+        document.getElementById("slipID").innerText = currentUser.sid;
+        document.getElementById("slipLang").innerText = currentUser.lang;
+        document.getElementById("slipExam").innerText = DB.exams[idx].title;
+        document.getElementById("slipScore").innerText = score;
+    }
+
+    function loadTeacherResults() {
+        let h = "<table style='width:100%; border-collapse:collapse;'><tr><th style='text-align:left;'>Student Name</th><th style='text-align:left;'>Exam Title</th><th>Score</th></tr>";
+        DB.results.forEach(r => {
+            let u = DB.users.find(x => x.email === r.student);
+            let ex = DB.exams[r.examIndex];
+            if(u && ex) h += `<tr style='border-bottom:1px solid #eee;'><td>${u.first} ${u.last}</td><td>${ex.title}</td><td style='text-align:center;'>${r.score}%</td></tr>`;
+        });
+        teacherResults.innerHTML = h + "</table>";
+    }
+</script>
+</body>
+</html>
